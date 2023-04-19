@@ -1,0 +1,8 @@
+Addr: "0.0.0.0:88"
+Database: "root:20030928@tcp(49.234.48.232:6666)/createimages?charset=utf8mb4&parseTime=True&loc=Local"
+TokenRelation:
+  Magnification: 1
+  MinToken: 100
+Auth:
+  Secret: "NewSecret"
+  ExpireTime: 3600
