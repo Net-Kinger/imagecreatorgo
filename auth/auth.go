@@ -57,7 +57,7 @@ func GenerateToken(id string) (string, error) {
 	}
 	sum := hc.Sum(nil)
 	sumBase64 := base64.URLEncoding.EncodeToString(sum)
-	return strings.Join([]string{hp, sumBase64}, "."), nil
+	return strings.Join([]string{base64.URLEncoding.EncodeToString(headerByte), base64.URLEncoding.EncodeToString(payloadJson), sumBase64}, "."), nil
 }
 
 func ParseTokenMiddleWare() gin.HandlerFunc {
@@ -71,14 +71,21 @@ func ParseTokenMiddleWare() gin.HandlerFunc {
 		if len(hps) != 3 {
 			handleErr()
 		}
-		hp := strings.Join(hps[0:2], ".")
+		header, err := base64.URLEncoding.DecodeString(hps[0])
+		payl, err := base64.URLEncoding.DecodeString(hps[1])
+		if err != nil {
+			return
+		}
+		hpp := strings.Join([]string{string(header), string(payl)}, ".")
+		hp := base64.URLEncoding.EncodeToString([]byte(hpp))
 		hc := hmac.New(sha3.New512, []byte(conf.Conf.Auth.Secret))
 		n, err := hc.Write([]byte(hp))
 		if err != nil || n == 0 {
 			handleErr()
 		}
 		sum := hc.Sum(nil)
-		if string(sum) != hps[2] {
+		sumStr := base64.URLEncoding.EncodeToString(sum)
+		if sumStr != hps[2] {
 			handleErr()
 		}
 		payloadByte, err := base64.URLEncoding.DecodeString(hps[1])

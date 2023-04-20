@@ -6,6 +6,7 @@ type User struct {
 	gorm.Model
 	PhoneNumber string
 	Uuid        string
+	Password    string `json:"password"`
 	Token       int64
 	Images      []Image
 	Messages    []Message

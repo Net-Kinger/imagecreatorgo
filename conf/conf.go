@@ -13,7 +13,7 @@ type Config struct {
 	Addr          string `yaml:"Addr"`
 	Database      string `yaml:"Database"`
 	TokenRelation struct {
-		Magnification float64 `yaml:"TokenMagnification"`
+		Magnification float64 `yaml:"Magnification"`
 		MinToken      int64   `yaml:"MinToken"`
 	} `yaml:"TokenRelation"`
 	Auth struct {
@@ -27,7 +27,12 @@ func (c *Config) SaveConfig(writer io.Writer) error {
 		return errors.New("config is nil")
 	}
 	encoder := yaml.NewEncoder(writer)
-	defer encoder.Close()
+	defer func() {
+		err := encoder.Close()
+		if err != nil {
+			return
+		}
+	}()
 	err := encoder.Encode(c)
 	if err != nil {
 		return err
@@ -43,7 +48,12 @@ func (c *Config) SaveConfigToFile(path string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			return
+		}
+	}()
 	encoder := yaml.NewEncoder(file)
 	defer encoder.Close()
 	encoder.Encode(c)

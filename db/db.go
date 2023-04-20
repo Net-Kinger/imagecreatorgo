@@ -7,17 +7,19 @@ import (
 	"imageCreator/conf"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 )
 
-var db *gorm.DB
+var DB *gorm.DB
 
 func InitDatabase() {
-	db, err := gorm.Open(mysql.Open(conf.Conf.Database), &gorm.Config{})
+	var err error
+	DB, err = gorm.Open(mysql.Open(conf.Conf.Database), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
-	err = db.AutoMigrate(&User{}, &Image{}, &Message{})
+	err = DB.AutoMigrate(&User{}, &Image{}, &Message{})
 	if err != nil {
 		panic(err)
 	}
@@ -29,13 +31,13 @@ func UserBillingBef() func(c *gin.Context) {
 		if ok == false {
 			c.String(http.StatusOK, "鉴权错误")
 		}
-		var user User
-		err := db.Find(&user, "uuid = ?", uuid).Error
+		var user = User{}
+		err := DB.Find(&user, "uuid = ?", uuid).Error
 		if err != nil {
 			c.String(http.StatusOK, "UUID未找到")
 		}
 		if user.Token <= conf.Conf.TokenRelation.MinToken {
-			c.String(http.StatusOK, "账户Token低于"+string(conf.Conf.TokenRelation.MinToken)+"不足,请充值")
+			c.String(http.StatusOK, "账户Token低于"+strconv.FormatInt(conf.Conf.TokenRelation.MinToken, 10)+"不足,请充值")
 		}
 		c.Set("User", user)
 		c.Next()
@@ -57,21 +59,21 @@ func UserBillingAft() func(c *gin.Context) {
 		consumeCountFloat := time.Since(now).Seconds() * conf.Conf.TokenRelation.Magnification
 		var consumeCount = int64(math.Round(consumeCountFloat))
 		user.Token = user.Token - consumeCount
-		tx := db.Model(&User{}).Updates(&user).Error
-		if tx != nil {
+		tx := DB.Model(&User{}).Where("uuid = ?", user.Uuid).Updates(&user)
+		if tx.Error != nil {
 			c.String(http.StatusOK, "数据库异常")
 		}
 	}
 }
 
 func Save() {
-	//db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	//DB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	//if err != nil {
 	//	panic(err)
 	//}
 	//
 	//user := User{}
-	//db.Preload("Images.Messages.User").Preload("Messages.User").Find(&user, 1)
+	//DB.Preload("Images.Messages.User").Preload("Messages.User").Find(&user, 1)
 	//fmt.Println(user.Messages[0].User.Name)
 	////
 	////if err != nil {
@@ -82,7 +84,7 @@ func Save() {
 	////	Name: "丽华",
 	////	Uuid: "123456",
 	////}
-	////err = db.Create(&user1).Error
+	////err = DB.Create(&user1).Error
 	////if err != nil {
 	////	panic(err)
 	////}
@@ -92,12 +94,12 @@ func Save() {
 	////	User: user1,
 	////}
 	////
-	////err = db.Create(&image1).Error
+	////err = DB.Create(&image1).Error
 	////if err != nil {
 	////	panic(err)
 	////}
 	////
-	////err = db.Create(&Message{
+	////err = DB.Create(&Message{
 	////	Text:  "你好",
 	////	User:  user1,
 	////	Image: image1,

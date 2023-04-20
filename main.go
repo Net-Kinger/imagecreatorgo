@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"imageCreator/auth"
 	"imageCreator/conf"
-	"os"
+	"imageCreator/db"
+	"time"
 )
 
 func main() {
@@ -11,18 +13,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//db.InitDatabase()
 
-	token, _ := auth.GenerateToken("u1")
-	create, _ := os.Create("token.txt")
-	create.Write([]byte(token))
-	create.Close()
-	//db.InitDatabase()
-	//engine := gin.Default()
-	//
-	//engine.Use(auth.ParseTokenMiddleWare())
-	//engine.GET("/test", db.UserBillingBef(), func(context *gin.Context) {
-	//
-	//}, db.UserBillingAft())
-	//engine.Run(conf.Conf.Addr)
+	db.InitDatabase()
+	engine := gin.Default()
+
+	engine.Use(auth.ParseTokenMiddleWare())
+	engine.GET("/test", db.UserBillingBef(), db.UserBillingAft(), func(context *gin.Context) {
+		time.Sleep(10 * time.Second)
+	})
+	err = engine.Run(conf.Conf.Addr)
+	if err != nil {
+		return
+	}
 }
