@@ -55,8 +55,16 @@ func (c *Config) SaveConfigToFile(path string) error {
 		}
 	}()
 	encoder := yaml.NewEncoder(file)
-	defer encoder.Close()
-	encoder.Encode(c)
+	defer func(encoder *yaml.Encoder) {
+		err := encoder.Close()
+		if err != nil {
+
+		}
+	}(encoder)
+	err = encoder.Encode(c)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -74,7 +82,12 @@ func ParseConfigFromFile(path string) error {
 	if err != nil {
 		return errors.New(path + "打开失败:" + err.Error())
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 	err = ParseConfig(file)
 	if err != nil {
 		return err

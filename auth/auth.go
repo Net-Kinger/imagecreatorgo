@@ -64,6 +64,7 @@ func ParseTokenMiddleWare() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var handleErr = func() {
 			c.String(http.StatusOK, "校验异常")
+			c.Abort()
 		}
 
 		jwtToken := c.GetHeader("Authorization")
@@ -74,7 +75,7 @@ func ParseTokenMiddleWare() gin.HandlerFunc {
 		header, err := base64.URLEncoding.DecodeString(hps[0])
 		payl, err := base64.URLEncoding.DecodeString(hps[1])
 		if err != nil {
-			return
+			handleErr()
 		}
 		hpp := strings.Join([]string{string(header), string(payl)}, ".")
 		hp := base64.URLEncoding.EncodeToString([]byte(hpp))

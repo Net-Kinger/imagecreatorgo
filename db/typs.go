@@ -5,6 +5,7 @@ import "gorm.io/gorm"
 type User struct {
 	gorm.Model
 	PhoneNumber string
+	Name        string
 	Uuid        string
 	Password    string `json:"password"`
 	Token       int64
@@ -14,10 +15,12 @@ type User struct {
 
 type Image struct {
 	gorm.Model
-	URL      string
-	UserID   uint
-	User     User
-	Messages []Message
+	URL         string
+	Uuid        string
+	ImageDetail string `json:"imageDetail"`
+	UserID      uint
+	User        User
+	Messages    []Message
 }
 
 type Message struct {
