@@ -1,4 +1,4 @@
-package auth
+package middleware
 
 import (
 	"crypto/hmac"
@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/sha3"
 	"imageCreator/conf"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -40,10 +39,10 @@ func init() {
 
 // jwt校验: 使用split对jwtToken用.分割，将[0:2]部分使用.拼接，创建hmac对象(并指定签名方法和密钥)，将[0:2]拼接后写入hmac对象，hmac.Sum计算签名，若签名!=[2]则说明Token被修改过
 
-func GenerateToken(id string) (string, error) {
+func GenerateToken(id string, Config *conf.Config) (string, error) {
 	payload := Payload{
 		UserID: id,
-		Exp:    time.Now().Unix() + conf.Conf.Auth.ExpireTime,
+		Exp:    time.Now().Unix() + Config.Auth.ExpireTime,
 	}
 	payloadJson, err := json.Marshal(payload)
 	if err != nil {
@@ -62,44 +61,46 @@ func GenerateToken(id string) (string, error) {
 
 func ParseTokenMiddleWare() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var handleErr = func() {
-			c.String(http.StatusOK, "校验异常")
-			c.Abort()
-		}
-
 		jwtToken := c.GetHeader("Authorization")
 		hps := strings.Split(jwtToken, ".")
 		if len(hps) != 3 {
-			handleErr()
+			c.AbortWithStatus(500)
+			return
 		}
 		header, err := base64.URLEncoding.DecodeString(hps[0])
 		payl, err := base64.URLEncoding.DecodeString(hps[1])
 		if err != nil {
-			handleErr()
+			c.AbortWithStatus(500)
+			return
 		}
 		hpp := strings.Join([]string{string(header), string(payl)}, ".")
 		hp := base64.URLEncoding.EncodeToString([]byte(hpp))
 		hc := hmac.New(sha3.New512, []byte(conf.Conf.Auth.Secret))
-		n, err := hc.Write([]byte(hp))
-		if err != nil || n == 0 {
-			handleErr()
+		_, err = hc.Write([]byte(hp))
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
 		}
 		sum := hc.Sum(nil)
 		sumStr := base64.URLEncoding.EncodeToString(sum)
 		if sumStr != hps[2] {
-			handleErr()
+			c.AbortWithStatus(500)
+			return
 		}
 		payloadByte, err := base64.URLEncoding.DecodeString(hps[1])
 		if err != nil {
-			handleErr()
+			c.AbortWithStatus(500)
+			return
 		}
 		var payload Payload
 		err = json.Unmarshal(payloadByte, &payload)
 		if err != nil {
-			handleErr()
+			c.AbortWithStatus(500)
+			return
 		}
 		if time.Now().Unix() >= payload.Exp {
-			c.String(http.StatusOK, "校验异常: JWT超时")
+			c.AbortWithStatus(500)
+			return
 		}
 		c.Set("UUID", payload.UserID)
 		c.Next()

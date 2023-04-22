@@ -16,6 +16,9 @@ type Config struct {
 		Magnification float64 `yaml:"Magnification"`
 		MinToken      int64   `yaml:"MinToken"`
 	} `yaml:"TokenRelation"`
+	ServerConfig struct {
+		Addr string `yaml:"Addr"`
+	} `yaml:"ServerConfig"`
 	Auth struct {
 		Secret     string `yaml:"Secret"`
 		ExpireTime int64  `yaml:"ExpireTime"`
@@ -58,7 +61,7 @@ func (c *Config) SaveConfigToFile(path string) error {
 	defer func(encoder *yaml.Encoder) {
 		err := encoder.Close()
 		if err != nil {
-
+			panic(err)
 		}
 	}(encoder)
 	err = encoder.Encode(c)
@@ -68,19 +71,20 @@ func (c *Config) SaveConfigToFile(path string) error {
 	return nil
 }
 
-func ParseConfig(reader io.Reader) error {
+func ParseConfig(reader io.Reader) (*Config, error) {
 	decoder := yaml.NewDecoder(reader)
-	err := decoder.Decode(&Conf)
+	var conf *Config
+	err := decoder.Decode(&conf)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return conf, nil
 }
 
-func ParseConfigFromFile(path string) error {
+func ParseConfigFromFile(path string) (*Config, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return errors.New(path + "打开失败:" + err.Error())
+		return nil, errors.New(path + "打开失败:" + err.Error())
 	}
 	defer func(file *os.File) {
 		err := file.Close()
@@ -88,9 +92,9 @@ func ParseConfigFromFile(path string) error {
 
 		}
 	}(file)
-	err = ParseConfig(file)
+	conf, err := ParseConfig(file)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return conf, nil
 }

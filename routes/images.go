@@ -1,59 +1,99 @@
 package routes
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"imageCreator/db"
+	"gorm.io/gorm"
+	"imageCreator/typs"
 )
 
 type ImageAddReq struct {
 	Url         string `json:"url"`
-	ImageDetail string `json:"imageDetail"`
+	ImageDetail string `json:"image_detail"`
 }
 
 type ImageGetReq struct {
 	Uuid  string `json:"uuid"`
-	Page  int    `json:"page"`
-	Count int    `json:"count"`
+	Page  int    `json:"page"`  // Only In Public Images
+	Count int    `json:"count"` //Common
 }
 
 type ImageGetResp struct {
-	Page   int        `json:"page"`
-	Count  int        `json:"count"`
-	Images []db.Image `json:"images"`
+	Page   int          `json:"page"` // Only In Public Images
+	Images []typs.Image `json:"images"`
 }
 
-func ImageAdd() func(c *gin.Context) {
+func ImageAdd(DB *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		uid, ok := c.Get("UUID")
 		if !ok {
-			c.AbortWithError(500, errors.New("images.30Line Error"))
+			c.AbortWithStatus(500)
+			return
 		}
 		var imageAddReq ImageAddReq
 		err := c.BindJSON(&imageAddReq)
 		if err != nil {
-			c.AbortWithError(500, err)
+			c.AbortWithStatus(500)
+			return
 		}
-		uidImg := uuid.New().String()
-		image := db.Image{
+		image := typs.Image{
+			Model: typs.Model{
+				ID: uuid.New().String(),
+			},
 			URL:         imageAddReq.Url,
 			ImageDetail: imageAddReq.ImageDetail,
-			Uuid:        uidImg,
-			User: db.User{
-				Uuid: uid.(string),
-			},
+			UserID:      uid.(string),
 		}
-		err = db.DB.Create(&image).Error
+		err = DB.Create(&image).Error
 		if err != nil {
-			c.AbortWithError(500, err)
+			c.AbortWithStatus(500)
+			return
 		}
 		c.String(200, "OK")
 	}
 }
 
-func ImageGet() func(c *gin.Context) {
+func ImageGet(DB *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		var imageGetReq ImageGetReq
+		err := c.BindJSON(&imageGetReq)
+		if err != nil {
+			c.AbortWithStatus(500)
+			return
+		}
+		var images []typs.Image
+		if imageGetReq.Uuid != "" {
+			// 处理指定用户获取图片功能 基于图片所有者UUID 按需加载
+
+			//Preload("User.Image").Preload("Messages.Image").
+			err := DB.
+				Preload("User").Preload("Messages").
+				Where("user_id = ?", imageGetReq.Uuid).
+				Order("id ASC").
+				Limit(imageGetReq.Count).
+				Offset((imageGetReq.Page - 1) * imageGetReq.Count).
+				Find(&images).Error
+			if err != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+			var imageGetResp = ImageGetResp{Images: images, Page: -1}
+			c.JSON(200, imageGetResp)
+		} else {
+			// 处理用户获取公共图片功能 基于图片主键id 按需加载
+			err := DB.
+				Preload("User").Preload("Messages").
+				Order("id ASC").
+				Limit(imageGetReq.Count).
+				Offset((imageGetReq.Page - 1) * imageGetReq.Count).
+				Find(&images).Error
+			if err != nil {
+				c.AbortWithStatus(500)
+				return
+			}
+			var imageGetResp = ImageGetResp{Images: images, Page: imageGetReq.Page}
+			c.JSON(200, imageGetResp)
+		}
 
 	}
 }

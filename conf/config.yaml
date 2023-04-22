@@ -3,6 +3,8 @@ Database: "root:20030928@tcp(49.234.48.232:6666)/createimages?charset=utf8mb4&pa
 TokenRelation:
   Magnification: 1
   MinToken: 100
+ServerConfig:
+  Addr: "http://127.0.0.1:7878"
 Auth:
   Secret: "NewSecret"
   ExpireTime: 3600

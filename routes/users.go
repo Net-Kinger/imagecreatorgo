@@ -3,14 +3,15 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"imageCreator/auth"
+	"gorm.io/gorm"
 	"imageCreator/conf"
-	"imageCreator/db"
+	"imageCreator/middleware"
+	"imageCreator/typs"
 	"net/http"
 )
 
 type UserMixReq struct {
-	IsRegistry  bool   `json:"isRegistry"`
+	IsRegistry  bool   `json:"is_registry"`
 	PhoneNumber string `json:"phone_number"`
 	Password    string `json:"password"`
 }
@@ -24,38 +25,39 @@ type UserMixResp struct {
 
 type UserDetail struct {
 	Name        string `json:"name"`
-	PhoneNumber string `json:"phoneNumber"`
-	NewPassword string `json:"new_password"`
-	Token       int64  `json:"token"`
+	Uuid        string `json:"uuid"` // GET
+	PhoneNumber string `json:"phone_number"`
+	NewPassword string `json:"new_password"` // SET
+	Token       int64  `json:"token"`        // GET
 }
 
-func UserMix() func(c *gin.Context) {
+func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var userMixReq UserMixReq
 		err := c.Bind(&userMixReq)
 		if err != nil {
-			c.String(200, "Error")
+			c.AbortWithStatus(500)
+			return
 		}
-
 		if !userMixReq.IsRegistry {
 			// 处理登陆逻辑
-			var user db.User
-			err := db.DB.Find(&user).Where("phone_number = ?", userMixReq.PhoneNumber).Error
+			var user typs.User
+			err := DB.Find(&user).Where("phone_number = ?", userMixReq.PhoneNumber).Error
 			if err != nil {
-				c.String(500, "users 49 Line:"+err.Error())
+				c.AbortWithStatus(500)
 				return
 			}
 			if user.Password != userMixReq.Password {
-				c.String(500, "密码错误")
+				c.AbortWithStatus(500)
 				return
 			}
-			jwtToken, err := auth.GenerateToken(user.Uuid)
+			jwtToken, err := middleware.GenerateToken(user.ID, Config)
 			if err != nil {
-				c.String(500, "jwt生成错误"+err.Error())
+				c.AbortWithStatus(500)
 				return
 			}
 			userMixResp := UserMixResp{
-				Uuid:       user.Uuid,
+				Uuid:       user.ID,
 				JwtToken:   jwtToken,
 				Tokens:     user.Token,
 				ExpireTime: conf.Conf.Auth.ExpireTime,
@@ -64,77 +66,74 @@ func UserMix() func(c *gin.Context) {
 			return
 		}
 		// 处理注册逻辑
-		uid := uuid.New().String()
-		err = db.DB.Create(&db.User{
+		uid := uuid.New()
+		err = DB.Create(&typs.User{
 			PhoneNumber: userMixReq.PhoneNumber,
 			Password:    userMixReq.Password,
-			Uuid:        uid,
-			Token:       0,
-			Images:      nil,
-			Messages:    nil,
+			Model: typs.Model{
+				ID: uid.String(),
+			},
+			Token:    conf.Conf.TokenRelation.MinToken,
+			Images:   nil,
+			Messages: nil,
 		}).Where("phone_number <> ?", userMixReq.PhoneNumber).Error
 		if err != nil {
-			c.String(200, "users 55 Line:"+err.Error())
+			c.AbortWithStatus(500)
 			return
 		}
 
-		jwtToken, err := auth.GenerateToken(uid)
+		jwtToken, err := middleware.GenerateToken(uid.String(), Config)
 		if err != nil {
-			c.String(200, "users 61 Line:"+err.Error())
+			c.AbortWithStatus(500)
 			return
 		}
 		userMixResp := UserMixResp{
-			Uuid:       uid,
+			Uuid:       uid.String(),
 			JwtToken:   jwtToken,
-			Tokens:     0,
+			Tokens:     conf.Conf.TokenRelation.MinToken,
 			ExpireTime: conf.Conf.Auth.ExpireTime,
 		}
 		c.JSON(http.StatusOK, userMixResp)
 	}
 }
 
-func UserSetDetail() func(c *gin.Context) {
+func UserSetDetail(DB *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var userDetail UserDetail
 		if err := c.BindJSON(&userDetail); err != nil {
-			c.String(500, "users.98:"+err.Error())
+			c.AbortWithStatus(500)
 			return
 		}
 		uid, ok := c.Get("UUID")
 		if !ok {
-			c.String(500, "users.102")
-			return
-		}
-		var user db.User
-		err := db.DB.Where("uuid = ?", uid).Find(&user).Error
-		if err != nil {
-			c.String(500, "用户不存在")
+			c.AbortWithStatus(500)
 			return
 		}
 
-		user.PhoneNumber = userDetail.PhoneNumber
-		user.Password = userDetail.NewPassword
-		user.Name = userDetail.Name
-		err = db.DB.Where("uuid = ?", uid).Updates(&user).Error
+		err := middleware.DB.Model(&typs.User{}).Where("id = ?", uid).Updates(map[string]interface{}{
+			"PhoneNumber": userDetail.PhoneNumber,
+			"Password":    userDetail.NewPassword,
+			"Name":        userDetail.Name,
+		}).Error
 		if err != nil {
-			c.String(500, "user.111:"+err.Error())
+			c.AbortWithStatus(500)
 			return
 		}
 		c.String(200, "OK")
 	}
 }
 
-func UserGetDetail() func(c *gin.Context) {
+func UserGetDetail(DB *gorm.DB) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		uid, ok := c.Get("UUID")
 		if !ok {
-			c.String(500, "users.121")
+			c.AbortWithStatus(500)
 			return
 		}
-		var user db.User
-		err := db.DB.Where("uuid = ?", uid).Find(&user).Error
+		var user typs.User
+		err := middleware.DB.Where("id = ?", uid).Find(&user).Error
 		if err != nil {
-			c.String(500, "用户不存在"+err.Error())
+			c.AbortWithStatus(500)
 			return
 		}
 
@@ -142,6 +141,7 @@ func UserGetDetail() func(c *gin.Context) {
 			Token:       user.Token,
 			Name:        user.Name,
 			PhoneNumber: user.PhoneNumber,
+			Uuid:        user.ID,
 		}
 
 		c.JSON(200, &userDetail)
