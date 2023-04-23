@@ -21,6 +21,7 @@ type MessageGetReq struct {
 type MessageGetResp struct {
 	UserID   string
 	DstID    string
+	Text     string
 	UserName string
 	DstName  string
 	Time     time.Time
@@ -81,6 +82,7 @@ func MessageGet(DB *gorm.DB) func(c *gin.Context) {
 				UserName: message[i].User.Name,
 				DstName:  message[i].Dst.Name,
 				Time:     message[i].CreatedAt,
+				Text:     message[i].Text,
 			}
 			messageRespList = append(messageRespList, messageResp)
 		}

@@ -77,7 +77,7 @@ func ImageGet(DB *gorm.DB) func(c *gin.Context) {
 				c.AbortWithStatus(500)
 				return
 			}
-			var imageGetResp = ImageGetResp{Images: images, Page: -1}
+			var imageGetResp = ImageGetResp{Images: images, Page: imageGetReq.Page}
 			c.JSON(200, imageGetResp)
 		} else {
 			// 处理用户获取公共图片功能 基于图片主键id 按需加载

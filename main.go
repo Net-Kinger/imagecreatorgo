@@ -1,10 +1,15 @@
 package main
 
+import "github.com/gin-gonic/gin"
+
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	Path := "conf/config.yaml"
-	engine := InitializeEngine(Path)
-	engine.RouterGroup = InitializeRouteGroup(Path)
-	err := engine.Run(":88")
+	engine, err := InitializeEngineWithPath(Path)
+	if err != nil {
+		panic(err)
+	}
+	err = engine.Run()
 	if err != nil {
 		panic(err)
 	}

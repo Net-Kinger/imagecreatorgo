@@ -6,8 +6,8 @@ import (
 )
 
 type Model struct {
-	ID        string `gorm:"type:uuid;primaryKey"`
-	CreatedAt time.Time
+	ID        string         `gorm:"type:uuid;primaryKey"`
+	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
@@ -19,7 +19,7 @@ type User struct {
 	Password    string `json:"-"`
 	Token       int64  `json:"-"`
 	Images      []Image
-	Messages    []Message
+	Messages    []Message `json:"-"`
 }
 
 type Image struct {
@@ -28,7 +28,7 @@ type Image struct {
 	ImageDetail string
 	UserID      string `json:"-"`
 	User        User
-	Messages    []Message
+	Messages    []Message `json:"-"`
 }
 
 type Message struct {
@@ -39,5 +39,5 @@ type Message struct {
 	Dst     User `gorm:"foreignKey:DstID"`
 	DstID   string
 	ImageID string
-	Image   Image
+	Image   Image `json:"-"`
 }

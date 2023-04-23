@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-var Conf Config
-
 type Config struct {
 	Addr          string `yaml:"Addr"`
 	Database      string `yaml:"Database"`
@@ -89,7 +87,7 @@ func ParseConfigFromFile(path string) (*Config, error) {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-
+			panic(err)
 		}
 	}(file)
 	conf, err := ParseConfig(file)

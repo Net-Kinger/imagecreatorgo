@@ -49,7 +49,7 @@ func GenerateToken(id string, Config *conf.Config) (string, error) {
 		return "", err
 	}
 	hp := base64.URLEncoding.EncodeToString([]byte(strings.Join([]string{string(headerByte), string(payloadJson)}, ".")))
-	hc := hmac.New(sha3.New512, []byte(conf.Conf.Auth.Secret))
+	hc := hmac.New(sha3.New512, []byte(Config.Auth.Secret))
 	n, err := hc.Write([]byte(hp))
 	if err != nil || n == 0 {
 		return "", nil
@@ -59,7 +59,7 @@ func GenerateToken(id string, Config *conf.Config) (string, error) {
 	return strings.Join([]string{base64.URLEncoding.EncodeToString(headerByte), base64.URLEncoding.EncodeToString(payloadJson), sumBase64}, "."), nil
 }
 
-func ParseTokenMiddleWare() gin.HandlerFunc {
+func ParseTokenMiddleWare(Config *conf.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		jwtToken := c.GetHeader("Authorization")
 		hps := strings.Split(jwtToken, ".")
@@ -75,7 +75,7 @@ func ParseTokenMiddleWare() gin.HandlerFunc {
 		}
 		hpp := strings.Join([]string{string(header), string(payl)}, ".")
 		hp := base64.URLEncoding.EncodeToString([]byte(hpp))
-		hc := hmac.New(sha3.New512, []byte(conf.Conf.Auth.Secret))
+		hc := hmac.New(sha3.New512, []byte(Config.Auth.Secret))
 		_, err = hc.Write([]byte(hp))
 		if err != nil {
 			c.AbortWithStatus(500)

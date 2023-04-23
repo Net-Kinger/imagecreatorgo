@@ -42,7 +42,7 @@ func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 		if !userMixReq.IsRegistry {
 			// 处理登陆逻辑
 			var user typs.User
-			err := DB.Find(&user).Where("phone_number = ?", userMixReq.PhoneNumber).Error
+			err := DB.Where("phone_number = ?", userMixReq.PhoneNumber).Find(&user).Error
 			if err != nil {
 				c.AbortWithStatus(500)
 				return
@@ -60,7 +60,7 @@ func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 				Uuid:       user.ID,
 				JwtToken:   jwtToken,
 				Tokens:     user.Token,
-				ExpireTime: conf.Conf.Auth.ExpireTime,
+				ExpireTime: Config.Auth.ExpireTime,
 			}
 			c.JSON(http.StatusOK, userMixResp)
 			return
@@ -73,7 +73,7 @@ func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 			Model: typs.Model{
 				ID: uid.String(),
 			},
-			Token:    conf.Conf.TokenRelation.MinToken,
+			Token:    Config.TokenRelation.MinToken,
 			Images:   nil,
 			Messages: nil,
 		}).Where("phone_number <> ?", userMixReq.PhoneNumber).Error
@@ -90,8 +90,8 @@ func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 		userMixResp := UserMixResp{
 			Uuid:       uid.String(),
 			JwtToken:   jwtToken,
-			Tokens:     conf.Conf.TokenRelation.MinToken,
-			ExpireTime: conf.Conf.Auth.ExpireTime,
+			Tokens:     Config.TokenRelation.MinToken,
+			ExpireTime: Config.Auth.ExpireTime,
 		}
 		c.JSON(http.StatusOK, userMixResp)
 	}
@@ -110,7 +110,7 @@ func UserSetDetail(DB *gorm.DB) func(c *gin.Context) {
 			return
 		}
 
-		err := middleware.DB.Model(&typs.User{}).Where("id = ?", uid).Updates(map[string]interface{}{
+		err := DB.Model(&typs.User{}).Where("id = ?", uid).Updates(map[string]interface{}{
 			"PhoneNumber": userDetail.PhoneNumber,
 			"Password":    userDetail.NewPassword,
 			"Name":        userDetail.Name,
@@ -131,7 +131,7 @@ func UserGetDetail(DB *gorm.DB) func(c *gin.Context) {
 			return
 		}
 		var user typs.User
-		err := middleware.DB.Where("id = ?", uid).Find(&user).Error
+		err := DB.Where("id = ?", uid).Find(&user).Error
 		if err != nil {
 			c.AbortWithStatus(500)
 			return
