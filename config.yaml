@@ -2,9 +2,10 @@ Addr: "0.0.0.0:99"
 Database: "root:20030928@tcp(49.234.48.232:6666)/createimages?charset=utf8mb4&parseTime=True&loc=Local"
 TokenRelation:
   Magnification: 1
-  MinToken: 100
+  MinToken: 0
+  InitToken: 1000
 ServerConfig:
-  Addr: "http://127.0.0.1:7878"
+  Addr: "http://127.0.0.1:7861"
 Auth:
-  Secret: "NewSecret"
-  ExpireTime: 3600
+  Secret: "20030928"
+  ExpireTime: 36000

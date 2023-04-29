@@ -1,10 +1,12 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
 	gin.SetMode(gin.ReleaseMode)
-	Path := "conf/config.yaml"
+	Path := "config.yaml"
 	engine, err := InitializeEngineWithPath(Path)
 	if err != nil {
 		panic(err)

@@ -73,7 +73,7 @@ func UserMix(DB *gorm.DB, Config *conf.Config) func(c *gin.Context) {
 			Model: typs.Model{
 				ID: uid.String(),
 			},
-			Token:    Config.TokenRelation.MinToken,
+			Token:    Config.TokenRelation.InitToken,
 			Images:   nil,
 			Messages: nil,
 		}).Where("phone_number <> ?", userMixReq.PhoneNumber).Error

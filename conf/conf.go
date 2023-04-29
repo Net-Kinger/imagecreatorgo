@@ -13,6 +13,7 @@ type Config struct {
 	TokenRelation struct {
 		Magnification float64 `yaml:"Magnification"`
 		MinToken      int64   `yaml:"MinToken"`
+		InitToken     int64   `yaml:"InitToken"`
 	} `yaml:"TokenRelation"`
 	ServerConfig struct {
 		Addr string `yaml:"Addr"`
